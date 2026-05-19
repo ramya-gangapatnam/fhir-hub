@@ -49,3 +49,19 @@ __pycache__/
 # === Logs / temp ===
 *.log
 tmp/
+
+# === Spec Kit / Claude Code local state ===
+# Ignore Claude Code's auth, cache, and per-user settings.
+# Keep the skills/ folder because it's part of the project's workflow definition.
+.claude/settings.local.json
+.claude/.credentials*
+.claude/auth*
+.claude/cache/
+.claude/logs/
+.claude/state/
+.claude/*.local.*
+
+# Spec Kit local runtime state (logs, tmp), but keep templates/workflows/scripts.
+.specify/.cache/
+.specify/logs/
+.specify/tmp/
