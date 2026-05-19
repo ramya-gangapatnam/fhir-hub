@@ -1,0 +1,51 @@
+﻿# === OS junk ===
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# === IDE / editor ===
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# === Java / Maven / Gradle ===
+target/
+build/
+.gradle/
+*.class
+*.jar
+*.war
+!gradle/wrapper/gradle-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# === Node / Angular ===
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+yarn-error.log
+
+# === Python ===
+__pycache__/
+*.py[cod]
+.venv/
+.uv-cache/
+
+# === Terraform ===
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# === Secrets / env ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# === Logs / temp ===
+*.log
+tmp/
