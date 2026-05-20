@@ -65,3 +65,6 @@ tmp/
 .specify/.cache/
 .specify/logs/
 .specify/tmp/
+
+# === Claude Code worktrees (managed by Claude Code, not part of repo) ===
+.claude/worktrees/
