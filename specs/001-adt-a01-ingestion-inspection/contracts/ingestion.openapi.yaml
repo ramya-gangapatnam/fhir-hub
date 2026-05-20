@@ -1,0 +1,127 @@
+openapi: 3.0.3
+info:
+  title: FHIR Hub — Ingestion API
+  version: 0.1.0
+  description: |
+    Accepts HL7 v2 ADT^A01 admission messages. Persists the raw body synchronously
+    and returns 202 Accepted; downstream transformation runs behind the internal
+    InboundMessageProcessor seam (see plan §5).
+
+servers:
+  - url: http://localhost:8080
+    description: Local Docker Compose
+  - url: https://fhir-hub.example.com
+    description: AWS deployment (placeholder)
+
+security:
+  - bearerAuth: []
+
+paths:
+  /ingest/hl7v2:
+    post:
+      operationId: ingestHl7v2
+      summary: Ingest one HL7 v2 ADT^A01 message
+      parameters:
+        - in: header
+          name: X-Correlation-Id
+          required: false
+          schema: { type: string, format: uuid }
+          description: |
+            Optional caller-supplied correlation ID. If omitted or malformed, the
+            server generates one and echoes it in the response header and body.
+      requestBody:
+        required: true
+        content:
+          application/hl7-v2:
+            schema:
+              type: string
+              format: binary
+              maxLength: 65536
+              description: Raw HL7 v2 message bytes, UTF-8. Segments separated by `\r`.
+      responses:
+        "202":
+          description: Accepted. Raw body persisted; transformation queued via the seam.
+          headers:
+            X-Correlation-Id:
+              schema: { type: string, format: uuid }
+              required: true
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestAcceptedResponse"
+        "400":
+          description: |
+            Malformed framing, missing required segment, version mismatch,
+            encoding error. The raw body is still persisted in `inbound_message`
+            with status FAILED so the operator can inspect it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "401":
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "413":
+          description: Body exceeds the 64 KiB cap.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "415":
+          description: Wrong Content-Type. Expected application/hl7-v2.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "500":
+          description: Unexpected server failure. No PHI, no stack trace.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-static-token
+  schemas:
+    IngestAcceptedResponse:
+      type: object
+      required: [messageId, status, receivedAtUtc, correlationId]
+      properties:
+        messageId:
+          type: string
+          format: uuid
+          description: Hub-assigned message identifier.
+        status:
+          type: string
+          enum: [RECEIVED]
+          description: Always RECEIVED at the 202 boundary.
+        receivedAtUtc:
+          type: string
+          format: date-time
+        correlationId:
+          type: string
+          format: uuid
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, correlationId]
+          properties:
+            code:
+              type: string
+              description: Stable, enumerated code from contracts/error-codes.md.
+              example: HL7_PARSE_MISSING_SEGMENT
+            message:
+              type: string
+              description: Summary-safe text. MUST NOT contain source-message values.
+            location:
+              type: string
+              nullable: true
+              description: Segment.field index, e.g., PID(missing) or PID-7. Never a value.
+            correlationId:
+              type: string
+              format: uuid

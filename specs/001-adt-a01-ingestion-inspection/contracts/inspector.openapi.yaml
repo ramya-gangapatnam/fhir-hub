@@ -1,0 +1,238 @@
+openapi: 3.0.3
+info:
+  title: FHIR Hub — Inspector API
+  version: 0.1.0
+  description: |
+    Backend API for the Angular 18 Inspector SPA. Three endpoints:
+    list messages, fetch one message's detail (raw HL7 + derived FHIR
+    side-by-side), and trigger a replay against the persisted raw body.
+
+servers:
+  - url: http://localhost:8080
+  - url: https://fhir-hub.example.com
+
+security:
+  - bearerAuth: []
+
+paths:
+  /inspector/messages:
+    get:
+      operationId: listMessages
+      summary: List ingested messages
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [RECEIVED, VALIDATING, TRANSFORMED, PERSISTED, FAILED]
+          style: form
+          explode: true
+          description: Filter by one or more processing statuses (FR-012).
+        - in: query
+          name: msh10
+          required: false
+          schema: { type: string }
+          description: Exact-match search on MSH-10 control ID (FR-012).
+        - in: query
+          name: limit
+          required: false
+          schema: { type: integer, default: 50, minimum: 1, maximum: 200 }
+        - in: query
+          name: offset
+          required: false
+          schema: { type: integer, default: 0, minimum: 0 }
+      responses:
+        "200":
+          description: A page of messages, ordered by received_at_utc descending.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageListPage" }
+        "400":
+          description: Invalid query parameter.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "401":
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+
+  /inspector/messages/{messageId}:
+    get:
+      operationId: getMessageDetail
+      summary: Fetch one message's detail (raw HL7 + FHIR side-by-side)
+      parameters:
+        - in: path
+          name: messageId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: |
+            Detail view. Includes the persisted raw HL7 body — this is
+            authenticated, audited operator access, not log/telemetry data.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageDetail" }
+        "401":
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "404":
+          description: Unknown messageId.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+
+  /inspector/messages/{messageId}/replay:
+    post:
+      operationId: replayMessage
+      summary: Re-run validation and transformation against the persisted raw body
+      parameters:
+        - in: path
+          name: messageId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: |
+            Replay completed (succeeded or failed-with-update). The audit
+            event for the operator-initiated replay is always emitted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReplayResult" }
+        "401":
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "404":
+          description: Unknown messageId.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "422":
+          description: |
+            Replay re-failed validation. The body is the error envelope
+            describing the new failure. The message's status is also
+            updated to FAILED in the database regardless of this status.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-static-token
+  schemas:
+    MessageListItem:
+      type: object
+      required: [messageId, msh10ControlId, sendingApplication, receivedAtUtc, status]
+      properties:
+        messageId: { type: string, format: uuid }
+        msh10ControlId: { type: string }
+        sendingApplication: { type: string }
+        receivedAtUtc: { type: string, format: date-time }
+        status:
+          type: string
+          enum: [RECEIVED, VALIDATING, TRANSFORMED, PERSISTED, FAILED]
+        lastErrorCode:
+          type: string
+          nullable: true
+    MessageListPage:
+      type: object
+      required: [messages, page]
+      properties:
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/MessageListItem" }
+        page:
+          type: object
+          required: [limit, offset, total]
+          properties:
+            limit: { type: integer }
+            offset: { type: integer }
+            total: { type: integer }
+    ValidationError:
+      type: object
+      required: [errorCode, summarySafe]
+      properties:
+        errorCode: { type: string }
+        segmentField:
+          type: string
+          nullable: true
+        summarySafe: { type: string }
+    MessageDetail:
+      type: object
+      required:
+        - messageId
+        - msh10ControlId
+        - sendingApplication
+        - receivedAtUtc
+        - status
+        - rawHl7
+        - validationErrors
+        - correlationId
+      properties:
+        messageId: { type: string, format: uuid }
+        msh10ControlId: { type: string }
+        sendingApplication: { type: string }
+        receivedAtUtc: { type: string, format: date-time }
+        status:
+          type: string
+          enum: [RECEIVED, VALIDATING, TRANSFORMED, PERSISTED, FAILED]
+        rawHl7: { type: string }
+        validationErrors:
+          type: array
+          items: { $ref: "#/components/schemas/ValidationError" }
+        fhirResources:
+          type: object
+          nullable: true
+          required: [patient, encounter]
+          properties:
+            patient:
+              description: FHIR R4 Patient (HAPI-serialized).
+              type: object
+              additionalProperties: true
+            encounter:
+              description: FHIR R4 Encounter (HAPI-serialized).
+              type: object
+              additionalProperties: true
+        correlationId: { type: string, format: uuid }
+    ReplayResult:
+      type: object
+      required: [messageId, previousStatus, newStatus, replayedAtUtc, correlationId]
+      properties:
+        messageId: { type: string, format: uuid }
+        previousStatus:
+          type: string
+          enum: [RECEIVED, VALIDATING, TRANSFORMED, PERSISTED, FAILED]
+        newStatus:
+          type: string
+          enum: [RECEIVED, VALIDATING, TRANSFORMED, PERSISTED, FAILED]
+        validationErrors:
+          type: array
+          items: { $ref: "#/components/schemas/ValidationError" }
+        replayedAtUtc: { type: string, format: date-time }
+        correlationId: { type: string, format: uuid }
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, correlationId]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            location:
+              type: string
+              nullable: true
+            correlationId: { type: string, format: uuid }
