@@ -1,0 +1,219 @@
+openapi: 3.0.3
+info:
+  title: FHIR Hub — FHIR R4 Read API
+  version: 0.1.0
+  description: |
+    Custom Spring controllers that implement the FHIR R4 `read` interaction
+    for Patient and Encounter only. HAPI FHIR model classes are used for
+    serialization; HAPI's bundled JPA FHIR server is NOT used.
+    Out of scope: create, update, delete, search, vread, history, XML wire format.
+
+servers:
+  - url: http://localhost:8080
+  - url: https://fhir-hub.example.com
+
+security:
+  - bearerAuth: []
+
+paths:
+  /fhir/Patient/{id}:
+    get:
+      operationId: readPatient
+      summary: Read a FHIR R4 Patient by logical id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: header
+          name: Accept
+          required: false
+          schema:
+            type: string
+            enum: [application/fhir+json, application/json]
+            default: application/fhir+json
+      responses:
+        "200":
+          description: The Patient resource.
+          headers:
+            ETag:
+              schema: { type: string }
+              description: Weak ETag, format `W/"<version_id>"`.
+            Last-Modified:
+              schema: { type: string }
+          content:
+            application/fhir+json:
+              schema: { $ref: "#/components/schemas/Patient" }
+        "401":
+          description: Missing or invalid bearer token.
+          content:
+            application/fhir+json:
+              schema: { $ref: "#/components/schemas/OperationOutcome" }
+        "404":
+          description: |
+            Resource not yet persisted or never existed. Returned during the
+            window between 202 Accepted and the 2-second-availability SLA
+            (SC-002) when the caller polls too early.
+          content:
+            application/fhir+json:
+              schema: { $ref: "#/components/schemas/OperationOutcome" }
+        "406":
+          description: Unsupported Accept (e.g., application/fhir+xml).
+          content:
+            application/fhir+json:
+              schema: { $ref: "#/components/schemas/OperationOutcome" }
+
+  /fhir/Encounter/{id}:
+    get:
+      operationId: readEncounter
+      summary: Read a FHIR R4 Encounter by logical id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: header
+          name: Accept
+          required: false
+          schema:
+            type: string
+            enum: [application/fhir+json, application/json]
+            default: application/fhir+json
+      responses:
+        "200":
+          description: The Encounter resource.
+          headers:
+            ETag:
+              schema: { type: string }
+            Last-Modified:
+              schema: { type: string }
+          content:
+            application/fhir+json:
+              schema: { $ref: "#/components/schemas/Encounter" }
+        "401":
+          description: Missing or invalid bearer token.
+          content:
+            application/fhir+json:
+              schema: { $ref: "#/components/schemas/OperationOutcome" }
+        "404":
+          description: Resource not yet persisted or never existed.
+          content:
+            application/fhir+json:
+              schema: { $ref: "#/components/schemas/OperationOutcome" }
+        "406":
+          description: Unsupported Accept.
+          content:
+            application/fhir+json:
+              schema: { $ref: "#/components/schemas/OperationOutcome" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-static-token
+  schemas:
+    # Schemas are intentionally loose here — the authoritative definitions
+    # are HAPI FHIR's R4 structures. These shapes exist so OpenAPI tooling
+    # can produce a usable client.
+    Patient:
+      type: object
+      required: [resourceType, id]
+      properties:
+        resourceType:
+          type: string
+          enum: [Patient]
+        id: { type: string }
+        meta:
+          type: object
+          properties:
+            versionId: { type: string }
+            lastUpdated: { type: string, format: date-time }
+        identifier:
+          type: array
+          items: { $ref: "#/components/schemas/Identifier" }
+        name:
+          type: array
+          items:
+            type: object
+            properties:
+              family: { type: string }
+              given:
+                type: array
+                items: { type: string }
+        gender:
+          type: string
+          enum: [male, female, other, unknown]
+        birthDate:
+          type: string
+          format: date
+    Encounter:
+      type: object
+      required: [resourceType, id, status]
+      properties:
+        resourceType:
+          type: string
+          enum: [Encounter]
+        id: { type: string }
+        meta:
+          type: object
+          properties:
+            versionId: { type: string }
+            lastUpdated: { type: string, format: date-time }
+        status:
+          type: string
+          enum: [planned, arrived, triaged, in-progress, onleave, finished, cancelled, entered-in-error, unknown]
+        class:
+          type: object
+          properties:
+            system: { type: string }
+            code: { type: string }
+        subject:
+          type: object
+          properties:
+            reference: { type: string, example: "Patient/<id>" }
+        location:
+          type: array
+          items:
+            type: object
+            properties:
+              location:
+                type: object
+                properties:
+                  reference: { type: string }
+    Identifier:
+      type: object
+      properties:
+        system: { type: string }
+        value: { type: string }
+    OperationOutcome:
+      type: object
+      required: [resourceType, issue]
+      properties:
+        resourceType:
+          type: string
+          enum: [OperationOutcome]
+        issue:
+          type: array
+          items:
+            type: object
+            required: [severity, code]
+            properties:
+              severity:
+                type: string
+                enum: [fatal, error, warning, information]
+              code:
+                type: string
+                description: FHIR issue type code (e.g., not-found, security, structure).
+              details:
+                type: object
+                properties:
+                  text: { type: string }
+              diagnostics:
+                type: string
+                description: |
+                  Same shape as the non-FHIR error envelope's `message` field —
+                  summary-safe, no PHI, no stack trace.
+              expression:
+                type: array
+                items: { type: string }

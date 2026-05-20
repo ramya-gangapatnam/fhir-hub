@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fhir-hub.example.com/schemas/audit-event.schema.json",
+  "title": "FhirHubAuditEvent",
+  "description": "Append-only audit record for every PHI-bearing read, write, or replay. Written to S3 with Object Lock (Compliance) in AWS and to an append-only JSONL file in local dev. MUST NOT contain PHI, source-message values, or stack traces.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "auditId",
+    "schemaVersion",
+    "timestampUtc",
+    "actor",
+    "correlationId",
+    "resource",
+    "operation",
+    "outcome"
+  ],
+  "properties": {
+    "auditId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Globally unique identifier for this audit record."
+    },
+    "schemaVersion": {
+      "type": "string",
+      "enum": ["1"],
+      "description": "Schema version. Bump for incompatible changes; an ADR is required."
+    },
+    "timestampUtc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of the audited operation."
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "identity"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["operator", "system"]
+        },
+        "identity": {
+          "type": "string",
+          "description": "Stable identifier. For the demo, 'demo-operator' for operator actions and 'system:ingestion' / 'system:transformation' / 'system:read' for system actions."
+        }
+      }
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "End-to-end correlation ID for this operation (SC-009)."
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["InboundMessage", "Patient", "Encounter", "AuditEvent"]
+        },
+        "id": {
+          "type": "string",
+          "description": "Hub-assigned identifier of the resource. NOT a FHIR business identifier (which could be PHI)."
+        }
+      }
+    },
+    "operation": {
+      "type": "string",
+      "enum": ["create", "read", "update", "replay", "delete"],
+      "description": "What was done. 'delete' is not currently used but is reserved."
+    },
+    "outcome": {
+      "type": "string",
+      "enum": ["success", "failure"]
+    },
+    "failureReason": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Present only when outcome is 'failure'. Constrained to summary-safe fields.",
+      "required": ["code", "summary"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable code from contracts/error-codes.md."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Summary-safe text. MUST NOT contain source-message values."
+        }
+      }
+    },
+    "sourceIp": {
+      "type": ["string", "null"],
+      "description": "Caller IP for HTTP-triggered operations. Null for purely internal triggers."
+    },
+    "userAgent": {
+      "type": ["string", "null"],
+      "description": "Caller User-Agent header for HTTP-triggered operations."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "outcome": { "const": "failure" } }
+      },
+      "then": {
+        "required": ["failureReason"]
+      }
+    }
+  ]
+}
