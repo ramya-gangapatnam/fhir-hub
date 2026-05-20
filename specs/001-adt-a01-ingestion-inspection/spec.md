@@ -5,7 +5,7 @@
 **Status**: Draft
 **Input**: User description: "ADT^A01 Ingestion and Inspection — accept HL7 v2 ADT^A01 admission messages over HTTP, transform to FHIR Patient + Encounter, expose via FHIR REST API, and provide an Inspector UI for listing messages, drilling into raw HL7 vs. transformed FHIR side-by-side, and replaying failed messages."
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - HL7 ADT^A01 Ingestion (Priority: P1)
 
@@ -57,7 +57,7 @@ An interop operator opens the Inspector web UI to monitor ingestion. The operato
 - **Patient identifier collision**: two distinct messages map (via PID-3) to the same patient identifier — treated as the same Patient resource per FHIR identifier semantics; Encounter is created as a new resource referencing that Patient.
 - **FHIR REST API request for a resource that has not yet finished processing**: returns `404 Not Found` until the resource is persisted; the 2-second SLA bounds how long this state is visible.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -96,7 +96,7 @@ An interop operator opens the Inspector web UI to monitor ingestion. The operato
 
 - **FR-020**: A test client included in the repository MUST be capable of POSTing canonical ADT^A01 fixtures (valid and invalid) to the ingestion endpoint and reporting hub responses, so that contributors can exercise the full path end-to-end without external tools.
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
 
 - **Inbound Message**: A record of one HL7 v2 ADT^A01 submission. Attributes: hub-assigned identifier, raw HL7 body, MSH-10 control ID, MSH-3 sending application, received-at UTC timestamp, current processing status (`received`, `transformed`, `persisted`, `failed`), last error code and location (if any), correlation ID, links to derived FHIR resources (if any).
 - **Patient**: A FHIR R4 Patient resource derived from the PID segment. Identified by a stable identifier carried in PID-3. Persisted such that replays of the same source message do not produce duplicates.
@@ -104,7 +104,7 @@ An interop operator opens the Inspector web UI to monitor ingestion. The operato
 - **Validation Error**: A structured failure record. Attributes: stable error code, location within the source (segment.field), human-readable summary safe to display, association to the Inbound Message it belongs to.
 - **Audit Event**: An append-only record of every PHI-touching operation. Attributes: actor identity, UTC ISO-8601 timestamp, resource type and identifier, operation (read/write/replay), outcome (success/failure), correlation ID. Distinct sink from the operational data store.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
@@ -114,7 +114,7 @@ An interop operator opens the Inspector web UI to monitor ingestion. The operato
 - **SC-004**: 100% of malformed ADT^A01 fixtures (missing MSH/PID/PV1, malformed framing, encoding errors) are rejected with a structured error response that contains zero PHI tokens.
 - **SC-005**: 100% of representative ADT^A01 messages produce application log output that contains zero PHI tokens, verified by automated test against a curated PHI-token list (per Principle I).
 - **SC-006**: 100% of PHI-bearing read, write, and replay operations produce a matching audit event in the append-only audit sink (per Principle II).
-- **SC-007**: An operator can locate a specific failed message in the Inspector list and successfully trigger a replay in under 60 seconds, without leaving the UI.
+- **SC-007**: With a list of up to 100 ingested messages and a known message identifier, an operator can locate the failed message and trigger a replay in under 60 seconds without leaving the Inspector UI.
 - **SC-008**: A new contributor can clone the repository, run the included test client, ingest a fixture, and view the resulting message in the Inspector within 5 minutes from a clean clone.
 - **SC-009**: The single correlation identifier from an ingestion POST is present in every downstream log line, span, and audit event associated with that message — verifiable by end-to-end trace inspection across 100% of sample messages.
 
