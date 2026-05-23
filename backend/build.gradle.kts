@@ -96,7 +96,7 @@ spotless {
     }
     kotlinGradle {
         target("*.gradle.kts")
-        ktlint("1.3.1")
+        ktlint("1.5.0")
     }
 }
 

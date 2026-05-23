@@ -16,7 +16,7 @@ build/
 *.class
 *.jar
 *.war
-!gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 !.mvn/wrapper/maven-wrapper.jar
 
 # === Node / Angular ===
