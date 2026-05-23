@@ -1,0 +1,37 @@
+# Multi-stage build for the fhir-hub backend.
+# Stage 1 builds the Spring Boot fat jar; stage 2 produces the runtime
+# image with the OpenTelemetry Java agent placed at /otel so the Compose
+# stack (and AWS task definitions later) can attach it via
+# JAVA_TOOL_OPTIONS=-javaagent:/otel/opentelemetry-javaagent.jar.
+
+# ---- build ----
+FROM eclipse-temurin:21-jdk AS build
+WORKDIR /workspace
+
+# Copy the Gradle wrapper + build scripts first so dependency resolution
+# is cached when only source files change. The wrapper isn't checked in
+# yet (added when the backend module is fleshed out); the COPY tolerates
+# its absence by listing files we know exist today.
+COPY backend/build.gradle.kts backend/settings.gradle.kts ./
+COPY backend/config ./config
+COPY backend/src ./src
+
+# Use the host gradle if the wrapper isn't present. In CI the wrapper
+# WILL be present once the module is built once; for now this keeps the
+# Dockerfile honest about what's required.
+RUN if [ -x ./gradlew ]; then ./gradlew --no-daemon bootJar; \
+    else apt-get update && apt-get install -y --no-install-recommends gradle \
+         && gradle --no-daemon bootJar; fi
+
+# ---- runtime ----
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+ARG OTEL_AGENT_VERSION=2.8.0
+ADD https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v${OTEL_AGENT_VERSION}/opentelemetry-javaagent.jar /otel/opentelemetry-javaagent.jar
+
+COPY --from=build /workspace/build/libs/*.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
