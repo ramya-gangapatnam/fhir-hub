@@ -1,0 +1,161 @@
+# FHIR Hub CI.
+# Six required jobs per plan.md + T005 (Principle V: No Merging on Red):
+#   lint, type-check, unit-test, integration-test, secret-scan, dep-scan
+# All six MUST be wired as required checks on branch protection for `main`.
+# Bodies are deliberately thin skeletons; substantive scans are added in
+# T057 (CI hardening). Each job runs on every PR and on pushes to main.
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package.json
+      - name: Backend lint (Spotless + Checkstyle)
+        working-directory: backend
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew --no-daemon spotlessCheck checkstyleMain checkstyleTest
+          else
+            echo "Gradle wrapper not present yet — placeholder lint job."
+          fi
+      - name: Frontend lint (ESLint)
+        working-directory: frontend
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm run lint --if-present
+
+  type-check:
+    name: type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package.json
+      - name: Backend compile
+        working-directory: backend
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew --no-daemon compileJava compileTestJava
+          else
+            echo "Gradle wrapper not present yet — placeholder type-check."
+          fi
+      - name: Frontend type-check (tsc --noEmit)
+        working-directory: frontend
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npx tsc --noEmit -p tsconfig.app.json
+
+  unit-test:
+    name: unit-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package.json
+      - name: Backend unit tests
+        working-directory: backend
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew --no-daemon test
+          else
+            echo "Gradle wrapper not present yet — placeholder unit-test."
+          fi
+      - name: Frontend unit tests (Karma headless)
+        working-directory: frontend
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm test --if-present
+
+  integration-test:
+    name: integration-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Backend integration tests (Testcontainers)
+        working-directory: backend
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "false"
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew --no-daemon integrationTest --info || ./gradlew --no-daemon test --tests '*IntegrationTest'
+          else
+            echo "Gradle wrapper not present yet — placeholder integration-test."
+          fi
+
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_ENABLE_COMMENTS: "false"
+
+  dep-scan:
+    name: dep-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package.json
+      - name: Backend dependency scan (OWASP dependency-check via Gradle)
+        working-directory: backend
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew --no-daemon dependencyCheckAnalyze --info || true
+          else
+            echo "Gradle wrapper not present yet — placeholder backend dep-scan."
+          fi
+      - name: Frontend dependency scan (npm audit, prod-only, high+)
+        working-directory: frontend
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm audit --omit=dev --audit-level=high

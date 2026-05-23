@@ -1,0 +1,95 @@
+# FHIR Hub local-dev stack.
+# Brings up Postgres + backend (with OTel agent) + frontend (Angular dev server)
+# + LocalStack S3. Backend healthcheck gates the frontend so the SPA never
+# loads against a half-booted API.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: fhirhub
+      POSTGRES_USER: fhirhub
+      POSTGRES_PASSWORD: fhirhub
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fhirhub -d fhirhub"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  localstack:
+    image: localstack/localstack:3
+    environment:
+      SERVICES: s3
+      DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    ports:
+      - "4566:4566"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:4566/_localstack/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/fhirhub
+      SPRING_DATASOURCE_USERNAME: fhirhub
+      SPRING_DATASOURCE_PASSWORD: fhirhub
+      # Demo-only token (Principle X, ADR-0010). NEVER use this value in AWS.
+      FHIR_HUB_AUTH_TOKEN: dev-only-do-not-ship
+      AUDIT_SINK: file
+      # OTel agent is attached via JAVA_TOOL_OPTIONS so Spring sees the
+      # exporters configured before context init. Console exporter locally.
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar"
+      OTEL_SERVICE_NAME: fhir-hub-backend
+      OTEL_TRACES_EXPORTER: logging
+      OTEL_METRICS_EXPORTER: logging
+      OTEL_LOGS_EXPORTER: none
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+    ports:
+      - "8080:8080"
+    volumes:
+      # Bind-mount the audit sink so JSONL events are host-readable
+      # (lets contributors tail it without exec'ing into the container).
+      - ../var/audit:/var/audit
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NG_BACKEND_BASE_URL: http://backend:8080
+    command: sh -c "npm ci && npm run start -- --host 0.0.0.0 --port 4200 --poll 2000"
+    ports:
+      - "4200:4200"
+    volumes:
+      - ../frontend:/app
+      - frontend-node-modules:/app/node_modules
+
+volumes:
+  postgres-data:
+  frontend-node-modules:

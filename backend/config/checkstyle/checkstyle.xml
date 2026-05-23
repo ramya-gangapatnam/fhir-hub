@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!--
+  Minimal Checkstyle baseline for fhir-hub-backend.
+  Intentionally narrow: enforces obvious hygiene (import order, no star
+  imports, no tabs) without imposing style choices that overlap with
+  Spotless / google-java-format. Expand as real issues surface in PRs.
+-->
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+    <property name="severity" value="error"/>
+    <property name="fileExtensions" value="java"/>
+
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true"/>
+    </module>
+
+    <module name="NewlineAtEndOfFile"/>
+
+    <module name="TreeWalker">
+        <module name="AvoidStarImport"/>
+        <module name="RedundantImport"/>
+        <module name="UnusedImports"/>
+        <module name="PackageDeclaration"/>
+        <module name="OuterTypeFilename"/>
+    </module>
+</module>

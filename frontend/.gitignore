@@ -1,0 +1,17 @@
+# Angular build artefacts
+/dist
+/out-tsc
+/.angular/cache
+/.angular
+
+# Dependencies
+/node_modules
+
+# Logs
+npm-debug.log*
+yarn-error.log
+yarn-debug.log*
+
+# IDE
+/.idea
+/.vscode

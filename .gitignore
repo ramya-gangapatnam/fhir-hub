@@ -16,7 +16,7 @@ build/
 *.class
 *.jar
 *.war
-!gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 !.mvn/wrapper/maven-wrapper.jar
 
 # === Node / Angular ===
@@ -49,6 +49,9 @@ __pycache__/
 # === Logs / temp ===
 *.log
 tmp/
+
+# === Audit sink (local dev JSONL appender) ===
+var/audit/
 
 # === Spec Kit / Claude Code local state ===
 # Ignore Claude Code's auth, cache, and per-user settings.
