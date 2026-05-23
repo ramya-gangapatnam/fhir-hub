@@ -1,0 +1,11 @@
+/* Global styles for the FHIR Hub Inspector SPA. */
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
