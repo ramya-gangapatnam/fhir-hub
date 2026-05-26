@@ -13,6 +13,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 /**
  * Wires the bearer-token AuthFilter into the Spring Security chain. The token is loaded from the
  * {@code FHIR_HUB_AUTH_TOKEN} environment variable; it is never logged or echoed.
+ *
+ * <p>The AuthFilter is instantiated inline (not exposed as a top-level bean) so Spring Boot's
+ * servlet-filter auto-registration does not double-register it outside the security chain.
  */
 @Configuration
 public class SecurityConfig {
@@ -28,11 +31,6 @@ public class SecurityConfig {
   }
 
   @Bean
-  public AuthFilter authFilter() {
-    return new AuthFilter(authToken);
-  }
-
-  @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
         .formLogin(AbstractHttpConfigurer::disable)
@@ -44,7 +42,7 @@ public class SecurityConfig {
                     .permitAll()
                     .anyRequest()
                     .authenticated())
-        .addFilterBefore(authFilter(), UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(new AuthFilter(authToken), UsernamePasswordAuthenticationFilter.class);
     return http.build();
   }
 }
