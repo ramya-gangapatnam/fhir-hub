@@ -13,7 +13,7 @@ import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import jakarta.annotation.PreDestroy;
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,8 +37,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ObservabilityConfig {
 
-  private static final AttributeKey<String> SERVICE_NAME =
-      AttributeKey.stringKey("service.name");
+  private static final AttributeKey<String> SERVICE_NAME = AttributeKey.stringKey("service.name");
 
   private final String exporterKind;
   private final String otlpEndpoint;
@@ -58,10 +57,9 @@ public class ObservabilityConfig {
   @Bean
   public OpenTelemetry openTelemetry() {
     Resource resource =
-        Resource.getDefault()
-            .merge(Resource.create(Attributes.of(SERVICE_NAME, serviceName)));
+        Resource.getDefault().merge(Resource.create(Attributes.of(SERVICE_NAME, serviceName)));
 
-    SdkTracerProvider.Builder providerBuilder = SdkTracerProvider.builder().setResource(resource);
+    var providerBuilder = SdkTracerProvider.builder().setResource(resource);
 
     SpanExporter rawExporter = buildExporter();
     if (rawExporter != null) {
@@ -85,22 +83,23 @@ public class ObservabilityConfig {
   @PreDestroy
   public void shutdown() {
     if (sdk != null) {
-      sdk.getSdkTracerProvider().shutdown().join(Duration.ofSeconds(5));
+      sdk.getSdkTracerProvider().shutdown().join(5, TimeUnit.SECONDS);
     }
   }
 
   private SpanExporter buildExporter() {
     return switch (exporterKind) {
       case "otlp" -> {
-        OtlpGrpcSpanExporter.Builder builder = OtlpGrpcSpanExporter.builder();
+        var builder = OtlpGrpcSpanExporter.builder();
         if (!otlpEndpoint.isEmpty()) {
           builder.setEndpoint(otlpEndpoint);
         }
         yield builder.build();
       }
       case "none", "" -> null;
-      default -> throw new IllegalArgumentException(
-          "Unsupported fhir-hub.otel.exporter value: " + exporterKind);
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported fhir-hub.otel.exporter value: " + exporterKind);
     };
   }
 }

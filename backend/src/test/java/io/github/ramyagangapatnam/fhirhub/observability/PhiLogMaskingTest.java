@@ -21,9 +21,9 @@ import org.slf4j.LoggerFactory;
  *
  * <p>The test wires a Logback {@link PatternLayoutEncoder} whose {@code %msg} / {@code %m}
  * conversion is bound to {@link MaskingConverter} (the same binding as {@code logback-spring.xml})
- * and captures the bytes that would leave the JVM. The synthetic ADT^A01 message contains every
- * PHI shape relevant to the spec: patient name, MRN, DOB (YYYYMMDD), street address, phone, SSN,
- * and email. None of those tokens may appear in the captured output.
+ * and captures the bytes that would leave the JVM. The synthetic ADT^A01 message contains every PHI
+ * shape relevant to the spec: patient name, MRN, DOB (YYYYMMDD), street address, phone, SSN, and
+ * email. None of those tokens may appear in the captured output.
  *
  * <p>Principle I (PHI Confidentiality in Logs — NON-NEGOTIABLE).
  */
@@ -132,8 +132,8 @@ class PhiLogMaskingTest {
 
     PatternLayout layout = new PatternLayout();
     layout.setContext(context);
-    layout.getInstanceConverterMap().put("msg", MaskingConverter.class.getName());
-    layout.getInstanceConverterMap().put("m", MaskingConverter.class.getName());
+    layout.getInstanceConverterMap().put("msg", MaskingConverter::new);
+    layout.getInstanceConverterMap().put("m", MaskingConverter::new);
     layout.setPattern(pattern + "%n");
     layout.start();
 
@@ -159,9 +159,7 @@ class PhiLogMaskingTest {
 
   private static void assertNoPhiTokensIn(String output) {
     for (String token : PHI_TOKENS) {
-      assertThat(output)
-          .as("PHI token %s leaked into log output", token)
-          .doesNotContain(token);
+      assertThat(output).as("PHI token %s leaked into log output", token).doesNotContain(token);
     }
     // The redaction must have actually run — at least one redaction marker should be present.
     assertThat(output).matches("(?s).*\\[REDACTED-.*");

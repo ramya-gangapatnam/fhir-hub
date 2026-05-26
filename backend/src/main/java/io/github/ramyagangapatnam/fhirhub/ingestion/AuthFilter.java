@@ -15,9 +15,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Bearer-token authentication filter. The expected token is supplied at construction time and
- * never logged or echoed in any response body. Rejections produce the JSON error envelope from
- * plan.md §3.7 with the stable codes from contracts/error-codes.md.
+ * Bearer-token authentication filter. The expected token is supplied at construction time and never
+ * logged or echoed in any response body. Rejections produce the JSON error envelope from plan.md
+ * §3.7 with the stable codes from contracts/error-codes.md.
  */
 public final class AuthFilter extends OncePerRequestFilter {
 

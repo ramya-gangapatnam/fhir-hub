@@ -13,13 +13,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Translates exceptions raised inside controllers into the stable error envelope defined in
- * plan.md §3.7. Stack traces NEVER appear in responses; {@code correlationId} is always populated
- * from MDC (null if no filter set it, which would only happen for a misconfigured environment).
+ * Translates exceptions raised inside controllers into the stable error envelope defined in plan.md
+ * §3.7. Stack traces NEVER appear in responses; {@code correlationId} is always populated from MDC
+ * (null if no filter set it, which would only happen for a misconfigured environment).
  *
  * <p>Filters that reject before the dispatcher runs (auth, ingestion boundary) write the same
- * envelope shape directly — see {@code AuthFilter} and {@code IngestionBoundaryFilter}. This
- * advice handles the in-dispatcher path.
+ * envelope shape directly — see {@code AuthFilter} and {@code IngestionBoundaryFilter}. This advice
+ * handles the in-dispatcher path.
  *
  * <p>Principle IX (Schema Validation at Boundaries).
  */

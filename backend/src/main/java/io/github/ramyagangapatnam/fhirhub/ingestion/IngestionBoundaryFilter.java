@@ -13,11 +13,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Enforces the 64 KiB body cap and the {@code application/hl7-v2} content type on the ingestion
- * endpoint. Rejects with the stable error envelope ({@code HTTP_PAYLOAD_TOO_LARGE} →
- * 413, {@code HTTP_UNSUPPORTED_MEDIA_TYPE} → 415) before the request body is read.
+ * endpoint. Rejects with the stable error envelope ({@code HTTP_PAYLOAD_TOO_LARGE} → 413, {@code
+ * HTTP_UNSUPPORTED_MEDIA_TYPE} → 415) before the request body is read.
  *
- * <p>Ordered <em>after</em> Spring Security ({@code SecurityProperties.DEFAULT_FILTER_ORDER = -100})
- * so auth is enforced first — an anonymous oversize/wrong-content-type request gets 401, not 413/415.
+ * <p>Ordered <em>after</em> Spring Security ({@code SecurityProperties.DEFAULT_FILTER_ORDER =
+ * -100}) so auth is enforced first — an anonymous oversize/wrong-content-type request gets 401, not
+ * 413/415.
  *
  * <p>Principle IX (Schema Validation at Boundaries).
  */

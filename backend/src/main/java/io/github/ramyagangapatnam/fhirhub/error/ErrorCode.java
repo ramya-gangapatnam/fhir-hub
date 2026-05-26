@@ -5,8 +5,8 @@ import org.springframework.http.HttpStatus;
 /**
  * Enumeration mirroring {@code specs/001-adt-a01-ingestion-inspection/contracts/error-codes.md}.
  *
- * <p>Each member carries the HTTP status it must surface as. Adding or renaming a code requires
- * a synchronous edit of the contract document — the enum and the doc are the same allow-list.
+ * <p>Each member carries the HTTP status it must surface as. Adding or renaming a code requires a
+ * synchronous edit of the contract document — the enum and the doc are the same allow-list.
  *
  * <p>Principle IX (Schema Validation at Boundaries).
  */
