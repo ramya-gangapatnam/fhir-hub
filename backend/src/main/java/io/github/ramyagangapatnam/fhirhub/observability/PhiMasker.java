@@ -33,9 +33,14 @@ public final class PhiMasker {
   // were interpolated mid-line into a log message (e.g. "Parsed PID line: PID|..."), per the plan
   // requirement to redact raw_hl7 regardless of context. Segment marker shape: an uppercase
   // letter followed by two uppercase-letter-or-digit chars (NK1, PV1, IN1, DG1, AL1, ...). The
-  // greedy {@code [^\r\n]*} ensures the redaction never bleeds past the segment's line.
+  // greedy {@code [^\r\n]*} ensures the redaction never bleeds past the segment's line, and the
+  // trailing {@code [\r\n]*} consumes the segment terminator(s) along with the segment so the
+  // {@code [REDACTED-HL7]} marker that replaces it does not leave dangling CR/LF chars from the
+  // source in the output — line-oriented sinks (JSON-per-line stdout, JSONL audit file) require a
+  // single-line representation, and the CR/LF was structural HL7 framing tied to the segment we
+  // just redacted (not separate content).
   private static final Pattern HL7_SEGMENT_LINE =
-      Pattern.compile("(?:^|(?<=[^A-Za-z0-9]))[A-Z][A-Z0-9]{2}\\|[^\\r\\n]*");
+      Pattern.compile("(?:^|(?<=[^A-Za-z0-9]))[A-Z][A-Z0-9]{2}\\|[^\\r\\n]*[\\r\\n]*");
 
   // Catches the HL7 encoding characters field even if a snippet starts mid-message.
   private static final Pattern HL7_ENCODING_CHARS = Pattern.compile("\\|\\^~\\\\&[^\\r\\n]*");
