@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logback configuration for fhir-hub-backend.
+
+  Key invariant (Principle I, NON-NEGOTIABLE): the %msg / %m conversion is
+  bound to MaskingConverter so every appender emits PHI-redacted messages.
+  Removing the conversionRule, or pointing an appender at a different message
+  conversion word, breaks Principle I.
+
+  Output shape is a single-line JSON object per event, assembled by a pattern
+  layout (no third-party JSON encoder dependency required). Fields:
+    ts             ISO-8601 UTC timestamp
+    level          log level
+    logger         logger name
+    correlation_id from MDC (null if unset)
+    thread         current thread name
+    msg            the redacted log message
+-->
+<configuration scan="false">
+
+  <!-- Bind %msg and %m to MaskingConverter so masking is applied to every appender. -->
+  <conversionRule conversionWord="msg"
+      converterClass="io.github.ramyagangapatnam.fhirhub.observability.MaskingConverter"/>
+  <conversionRule conversionWord="m"
+      converterClass="io.github.ramyagangapatnam.fhirhub.observability.MaskingConverter"/>
+
+  <property name="JSON_PATTERN"
+      value='{"ts":"%d{yyyy-MM-dd''T''HH:mm:ss.SSSXXX,UTC}","level":"%level","logger":"%logger{40}","correlation_id":"%X{correlation_id:-}","thread":"%thread","msg":"%replace(%msg){''"'',''\\"''}"}%n'/>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>${JSON_PATTERN}</pattern>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT"/>
+  </root>
+
+  <logger name="io.github.ramyagangapatnam.fhirhub" level="INFO"/>
+  <logger name="org.springframework" level="INFO"/>
+  <logger name="org.hibernate" level="WARN"/>
+</configuration>
