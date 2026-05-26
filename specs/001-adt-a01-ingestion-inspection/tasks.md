@@ -86,7 +86,7 @@ Per [plan.md §3](./plan.md), the repository is a web-app layout:
 ### Implementation for User Story 1
 
 - [X] T028 [US1] JPA entities + Spring Data repositories under `persistence/`: `InboundMessage`, `ValidationError`, `IdempotencyKey`, `FhirResource` with `JdbcType.JSON` for `content_json`. Map the enum statuses to the DB CHECK values exactly.
-- [ ] T029 [US1] HL7 lightweight parser at `hl7/Hl7HeaderParser.java`: extracts MSH-3, MSH-9, MSH-10, MSH-12 only, fast enough to run inside the request thread before persistence. Uses HAPI HL7 `PipeParser` in lenient mode for header-only extraction. **Principle IX**.
+- [X] T029 [US1] HL7 lightweight parser at `hl7/Hl7HeaderParser.java`: extracts MSH-3, MSH-9, MSH-10, MSH-12 only, fast enough to run inside the request thread before persistence. Uses HAPI HL7 `PipeParser` in lenient mode for header-only extraction. **Principle IX**.
 - [ ] T030 [US1] ADT^A01 schema validator at `hl7/Adt01SchemaValidator.java` (full validation, NOT the lightweight header parse): produces `ValidationError` records keyed to [error-codes.md](./contracts/error-codes.md). **Principle IX**.
 - [ ] T031 [P] [US1] PID → Patient mapper at `transform/PidToPatientMapper.java` using HAPI FHIR R4 model classes. Returns a populated `org.hl7.fhir.r4.model.Patient`.
 - [ ] T032 [P] [US1] PV1 → Encounter mapper at `transform/Pv1ToEncounterMapper.java`. Sets `Encounter.subject` to the Patient logical id.
