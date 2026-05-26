@@ -24,8 +24,14 @@
   <conversionRule conversionWord="m"
       converterClass="io.github.ramyagangapatnam.fhirhub.observability.MaskingConverter"/>
 
+  <!--
+    The attribute is double-quoted so each literal `"` in the JSON layout is
+    written as `&quot;`. Logback's pattern semantics treat `''` (inside %d{})
+    as a literal apostrophe, so the doubled apostrophes are preserved as-is —
+    XML has no `''` escape, they are simply two raw characters in the attribute.
+  -->
   <property name="JSON_PATTERN"
-      value='{"ts":"%d{yyyy-MM-dd''T''HH:mm:ss.SSSXXX,UTC}","level":"%level","logger":"%logger{40}","correlation_id":"%X{correlation_id:-}","thread":"%thread","msg":"%replace(%msg){''"'',''\\"''}"}%n'/>
+      value="{&quot;ts&quot;:&quot;%d{yyyy-MM-dd''T''HH:mm:ss.SSSXXX,UTC}&quot;,&quot;level&quot;:&quot;%level&quot;,&quot;logger&quot;:&quot;%logger{40}&quot;,&quot;correlation_id&quot;:&quot;%X{correlation_id:-}&quot;,&quot;thread&quot;:&quot;%thread&quot;,&quot;msg&quot;:&quot;%replace(%msg){''&quot;'',''\\&quot;''}&quot;}%n"/>
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
