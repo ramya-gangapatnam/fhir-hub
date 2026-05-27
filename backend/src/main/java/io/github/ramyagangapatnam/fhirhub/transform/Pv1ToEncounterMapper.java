@@ -17,6 +17,7 @@ import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Encounter.EncounterLocationComponent;
 import org.hl7.fhir.r4.model.Encounter.EncounterParticipantComponent;
 import org.hl7.fhir.r4.model.Reference;
+import org.springframework.stereotype.Component;
 
 /**
  * Maps an HL7 v2 PV1 segment onto a FHIR R4 {@link Encounter}. Fields covered per plan.md §3.1:
@@ -35,6 +36,7 @@ import org.hl7.fhir.r4.model.Reference;
  * runs, {@link io.github.ramyagangapatnam.fhirhub.hl7.Adt01SchemaValidator} has already established
  * the message is well-formed enough to transform.
  */
+@Component
 public final class Pv1ToEncounterMapper {
 
   private static final String ACT_CODE_SYSTEM = "http://terminology.hl7.org/CodeSystem/v3-ActCode";

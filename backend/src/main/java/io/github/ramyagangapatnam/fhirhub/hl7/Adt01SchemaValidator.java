@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.stereotype.Component;
 
 /**
  * Validates an ADT^A01 message against the structural rules from plan.md §3.1.
@@ -19,6 +20,7 @@ import java.util.Set;
  *
  * <p>Principle IX (Schema Validation at Boundaries).
  */
+@Component
 public final class Adt01SchemaValidator {
 
   private static final Set<String> SUPPORTED_VERSIONS = Set.of("2.5", "2.5.1");
