@@ -14,6 +14,7 @@ import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.r4.model.HumanName;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Patient;
+import org.springframework.stereotype.Component;
 
 /**
  * Maps an HL7 v2 PID segment onto a FHIR R4 {@link Patient}. Fields covered per plan.md §3.1 and
@@ -32,6 +33,7 @@ import org.hl7.fhir.r4.model.Patient;
  * {@link io.github.ramyagangapatnam.fhirhub.hl7.Adt01SchemaValidator} has already established the
  * message is well-formed enough to transform.
  */
+@Component
 public final class PidToPatientMapper {
 
   private final PipeParser parser;
