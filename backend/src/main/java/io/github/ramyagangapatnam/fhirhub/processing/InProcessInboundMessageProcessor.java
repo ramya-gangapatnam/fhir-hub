@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
@@ -31,7 +30,6 @@ import org.springframework.stereotype.Component;
  * RECEIVED} and an operator can replay it via the Inspector once US2 lands.
  */
 @Component
-@ConditionalOnBean(MessageTransformationService.class)
 public class InProcessInboundMessageProcessor implements InboundMessageProcessor {
 
   private static final Logger LOGGER =

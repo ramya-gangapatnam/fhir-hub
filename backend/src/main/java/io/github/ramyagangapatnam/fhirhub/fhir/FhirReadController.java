@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.ramyagangapatnam.fhirhub.audit.AuditEventEmitter;
 import io.github.ramyagangapatnam.fhirhub.observability.CorrelationIdFilter;
-import io.github.ramyagangapatnam.fhirhub.persistence.FhirResourceJpaRepository;
 import io.github.ramyagangapatnam.fhirhub.persistence.FhirResourceType;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -18,7 +17,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.MDC;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -50,7 +48,6 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/fhir")
-@ConditionalOnBean(FhirResourceJpaRepository.class)
 public class FhirReadController {
 
   static final String FHIR_JSON_MEDIA_TYPE = "application/fhir+json";
@@ -126,8 +123,8 @@ public class FhirReadController {
 
   /**
    * The OpenAPI lists {@code application/fhir+json} as the canonical type and {@code
-   * application/json} as an accepted alias. {@code */*} (curl's default) and an absent header mean
-   * "give me what you have," which for this endpoint is FHIR JSON.
+   * application/json} as an accepted alias. A wildcard Accept (curl's default) and an absent
+   * header both mean "give me what you have," which for this endpoint is FHIR JSON.
    */
   private static boolean acceptIsSupported(String accept) {
     if (accept == null || accept.isBlank()) {

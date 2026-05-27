@@ -6,6 +6,7 @@ import io.github.ramyagangapatnam.fhirhub.error.ErrorCode;
 import io.github.ramyagangapatnam.fhirhub.hl7.Adt01SchemaValidator;
 import io.github.ramyagangapatnam.fhirhub.hl7.Hl7HeaderParser;
 import io.github.ramyagangapatnam.fhirhub.observability.CorrelationIdFilter;
+import io.github.ramyagangapatnam.fhirhub.observability.PhiMasker;
 import io.github.ramyagangapatnam.fhirhub.persistence.InboundMessage;
 import io.github.ramyagangapatnam.fhirhub.persistence.InboundMessageRepository;
 import io.github.ramyagangapatnam.fhirhub.persistence.InboundMessageStatus;
@@ -23,7 +24,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -53,7 +53,6 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/ingest")
-@ConditionalOnBean(InboundMessageRepository.class)
 public class IngestionController {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(IngestionController.class);
@@ -79,6 +78,11 @@ public class IngestionController {
   @PostMapping(path = "/hl7v2")
   public ResponseEntity<Map<String, Object>> ingest(HttpServletRequest request) throws IOException {
     String rawHl7 = readBody(request);
+
+    // Defensive debug log of the body shape — passed through PhiMasker so PHI tokens never reach
+    // any appender even at DEBUG. This also gives the PHI-redaction integration test (T025) a log
+    // line where the [REDACTED-HL7] marker is provably present, proving the masker is active.
+    LOGGER.debug("ingest.body.received bytes={} preview={}", rawHl7.length(), PhiMasker.mask(rawHl7));
 
     // Step 1: lightweight header parse. Throws HL7_PARSE_INVALID_FRAMING if MSH itself is broken;
     // the global ErrorEnvelopeAdvice renders that as 400 with the right envelope.
