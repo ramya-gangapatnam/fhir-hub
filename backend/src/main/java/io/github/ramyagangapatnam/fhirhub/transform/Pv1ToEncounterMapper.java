@@ -130,23 +130,15 @@ public final class Pv1ToEncounterMapper {
   }
 
   private static void setAttendingParticipant(Encounter encounter, Terser t) {
-    // PV1-7 is the canonical HL7 v2.5 Attending Doctor field. Some hand-authored fixtures and a
-    // small number of HL7 senders in the wild shift the doctor one position to the right; if
-    // PV1-7 comes back blank we fall back to PV1-8 (Referring Doctor) so the participant slot is
-    // still populated rather than silently dropped on the floor.
-    String practId = firstNonEmpty(terserGet(t, "/PV1-7-1"), terserGet(t, "/PV1-8-1"));
-    String family = firstNonEmpty(terserGet(t, "/PV1-7-2"), terserGet(t, "/PV1-8-2"));
-    String given = firstNonEmpty(terserGet(t, "/PV1-7-3"), terserGet(t, "/PV1-8-3"));
+    String practId = terserGet(t, "/PV1-7-1");
+    String family = terserGet(t, "/PV1-7-2");
+    String given = terserGet(t, "/PV1-7-3");
     if (practId.isEmpty() && family.isEmpty() && given.isEmpty()) {
       return;
     }
     EncounterParticipantComponent participant = encounter.addParticipant();
     String practRef = practId.isEmpty() ? joinNonEmpty("-", family, given) : practId;
     participant.setIndividual(new Reference("Practitioner/" + practRef));
-  }
-
-  private static String firstNonEmpty(String first, String second) {
-    return first.isEmpty() ? second : first;
   }
 
   private static String joinNonEmpty(String separator, String... parts) {
