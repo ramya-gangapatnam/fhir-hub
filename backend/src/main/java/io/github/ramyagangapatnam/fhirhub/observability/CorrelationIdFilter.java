@@ -29,7 +29,10 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
     String supplied = request.getHeader(HEADER);
-    String correlationId = isValid(supplied) ? supplied : UUID.randomUUID().toString();
+    String correlationId = parseUuidOrNull(supplied);
+    if (correlationId == null) {
+      correlationId = UUID.randomUUID().toString();
+    }
 
     MDC.put(MDC_KEY, correlationId);
     response.setHeader(HEADER, correlationId);
@@ -40,26 +43,17 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
     }
   }
 
-  private static boolean isValid(String value) {
+  // inbound_message.correlation_id is uuid NOT NULL and audit-event.schema.json requires
+  // correlationId format:uuid. Accept only RFC 4122 UUIDs from the client; anything else gets a
+  // freshly-minted server-side UUID per plan.md §3.1 ("if absent or malformed, server generates").
+  private static String parseUuidOrNull(String value) {
     if (value == null || value.isBlank()) {
-      return false;
+      return null;
     }
-    int len = value.length();
-    if (len > 128) {
-      return false;
+    try {
+      return UUID.fromString(value).toString();
+    } catch (IllegalArgumentException ex) {
+      return null;
     }
-    for (int i = 0; i < len; i++) {
-      char c = value.charAt(i);
-      boolean ok =
-          (c >= 'a' && c <= 'z')
-              || (c >= 'A' && c <= 'Z')
-              || (c >= '0' && c <= '9')
-              || c == '-'
-              || c == '_';
-      if (!ok) {
-        return false;
-      }
-    }
-    return true;
   }
 }
