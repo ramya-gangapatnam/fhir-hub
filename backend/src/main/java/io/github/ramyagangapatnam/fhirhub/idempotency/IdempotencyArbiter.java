@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
  * failure.
  */
 @Component
+@ConditionalOnBean(DataSource.class)
 public class IdempotencyArbiter {
 
   private final JdbcTemplate jdbc;

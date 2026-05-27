@@ -35,7 +35,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
     // Persistence
-    implementation("org.flywaydb:flyway-core")
+    // Spring Boot 4 split FlywayAutoConfiguration into a separate starter module; without it,
+    // flyway-core is on the classpath but the autoconfigure that ties Flyway -> Hibernate ordering
+    // (so migrations run before ddl-auto=validate) does not load. See T002 notes.
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
 

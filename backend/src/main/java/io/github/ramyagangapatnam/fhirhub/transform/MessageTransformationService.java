@@ -20,6 +20,7 @@ import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Patient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -49,6 +50,7 @@ import org.springframework.stereotype.Service;
  * message and surfaced as a failed audit event.
  */
 @Service
+@ConditionalOnBean(InboundMessageRepository.class)
 public class MessageTransformationService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MessageTransformationService.class);
