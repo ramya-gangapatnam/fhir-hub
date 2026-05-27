@@ -22,7 +22,7 @@ public final class Hl7Fixtures {
       "MSH|^~\\&|ADMIT_SYSTEM|HOSPITAL|RECEIVER|FACILITY|20260520143210||ADT^A01|MSG00001|P|2.5\r"
           + "EVN|A01|20260520143210\r"
           + "PID|1||MRN0001234^^^HOSP^MR||DOEPATIENT^JANE^ELIZABETH||19850203|F\r"
-          + "PV1|1|I|2W^201^A^GEN|R||||DR_SMITH^WELBY^MARCUS|||||||||||||||||||||||||||||||"
+          + "PV1|1|I|2W^201^A^GEN|R|||DR_SMITH^WELBY^MARCUS|||||||||||||||||||||||||||||||"
           + "|||20260520143210";
 
   /** MSH header but PID segment is missing — PV1 follows EVN directly. */
