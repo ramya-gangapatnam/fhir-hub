@@ -13,7 +13,6 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Patient;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
  * Patient identifier.
  */
 @Component
-@ConditionalOnBean(FhirResourceJpaRepository.class)
 public class FhirResourceRepository {
 
   private static final FhirContext FHIR_CONTEXT = FhirContext.forR4();

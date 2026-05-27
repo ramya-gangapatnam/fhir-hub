@@ -11,8 +11,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Shared base for the User Story 1 integration tests (T024–T027) that need real persistence:
@@ -29,7 +27,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * implemented yet (T028–T041). The schema migrates cleanly, the app boots, and HTTP requests get
  * 404 / 401 / 500 instead of the expected 202 / 200 / specific error envelopes.
  */
-@Testcontainers
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     classes = FhirHubApplication.class)
@@ -38,12 +35,9 @@ public abstract class AbstractDbIntegrationTest {
 
   protected static final String VALID_TOKEN = "test-token";
 
-  @Container
-  protected static final PostgreSQLContainer<?> POSTGRES =
-      new PostgreSQLContainer<>("postgres:16-alpine")
-          .withDatabaseName("fhirhub")
-          .withUsername("fhirhub")
-          .withPassword("fhirhub");
+  // Reuse one Postgres across the JVM via SharedPostgres — spinning a fresh container per test
+  // class has caused connection-refused flakes on dev Docker setups.
+  protected static final PostgreSQLContainer<?> POSTGRES = SharedPostgres.INSTANCE;
 
   @DynamicPropertySource
   static void datasourceProperties(DynamicPropertyRegistry registry) {
@@ -66,5 +60,23 @@ public abstract class AbstractDbIntegrationTest {
                 EncoderConfig.encoderConfig()
                     .encodeContentTypeAs("application/hl7-v2", io.restassured.http.ContentType.TEXT)
                     .appendDefaultContentCharsetToContentTypeIfUndefined(false));
+  }
+
+  /**
+   * The Postgres container is shared across test classes, so wipe the per-test state before each
+   * test to keep row-count assertions deterministic. Idempotent on a fresh DB.
+   */
+  @BeforeEach
+  void truncateBusinessTables() throws java.sql.SQLException {
+    try (java.sql.Connection c =
+            java.sql.DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+        java.sql.Statement s = c.createStatement()) {
+      // CASCADE handles FKs into inbound_message; idempotency_key references both, fhir_resource is
+      // referenced by idempotency_key.
+      s.execute(
+          "TRUNCATE TABLE idempotency_key, validation_error, fhir_resource, inbound_message"
+              + " RESTART IDENTITY CASCADE");
+    }
   }
 }
