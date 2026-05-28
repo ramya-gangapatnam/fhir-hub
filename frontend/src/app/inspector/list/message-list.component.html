@@ -1,0 +1,74 @@
+<section class="inspector-list">
+  <h1>Inspector — Messages</h1>
+
+  <form class="filters" (ngSubmit)="search()">
+    <fieldset class="status-filter">
+      <legend>Status</legend>
+      @for (status of statuses; track status) {
+        <label class="status-option">
+          <input
+            type="checkbox"
+            [checked]="selectedStatuses.includes(status)"
+            (change)="toggleStatus(status, $any($event.target).checked)"
+          />
+          {{ status }}
+        </label>
+      }
+    </fieldset>
+
+    <label class="msh10-search">
+      MSH-10 control ID
+      <input
+        type="search"
+        name="msh10"
+        [(ngModel)]="msh10"
+        placeholder="exact match"
+      />
+    </label>
+
+    <button type="submit">Search</button>
+  </form>
+
+  @if (loading()) {
+    <p class="status-msg">Loading…</p>
+  } @else if (error()) {
+    <p class="status-msg error">{{ error() }}</p>
+  } @else if (messages().length === 0) {
+    <p class="status-msg">No messages found.</p>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>Message ID</th>
+          <th>MSH-10</th>
+          <th>Sending application</th>
+          <th>Received at (UTC)</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (message of messages(); track message.messageId) {
+          <tr
+            class="message-row"
+            tabindex="0"
+            (click)="openMessage(message.messageId)"
+            (keydown.enter)="openMessage(message.messageId)"
+          >
+            <td class="mono">{{ message.messageId }}</td>
+            <td>{{ message.msh10ControlId }}</td>
+            <td>{{ message.sendingApplication }}</td>
+            <td class="mono">
+              {{ message.receivedAtUtc | date: 'yyyy-MM-dd HH:mm:ss' : 'UTC' }}
+            </td>
+            <td>
+              <span class="status status-{{ message.status }}">
+                {{ message.status }}
+              </span>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <p class="total">{{ total() }} message(s)</p>
+  }
+</section>
