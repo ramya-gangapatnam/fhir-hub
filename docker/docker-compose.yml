@@ -30,7 +30,11 @@ services:
     ports:
       - "4566:4566"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:4566/_localstack/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:4566/_localstack/health || exit 1",
+        ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -50,7 +54,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: fhirhub
       # Demo-only token (Principle X, ADR-0010). NEVER use this value in AWS.
       FHIR_HUB_AUTH_TOKEN: dev-only-do-not-ship
-      AUDIT_SINK: file
+      FHIR_HUB_AUDIT_SINK: file
       # OTel agent is attached via JAVA_TOOL_OPTIONS so Spring sees the
       # exporters configured before context init. Console exporter locally.
       JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar"
@@ -69,7 +73,11 @@ services:
       # (lets contributors tail it without exec'ing into the container).
       - ../var/audit:/var/audit
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:8080/actuator/health || exit 1",
+        ]
       interval: 10s
       timeout: 3s
       retries: 12
