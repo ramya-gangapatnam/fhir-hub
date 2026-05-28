@@ -11,8 +11,11 @@ import io.github.ramyagangapatnam.fhirhub.persistence.IdempotencyKey;
 import io.github.ramyagangapatnam.fhirhub.persistence.IdempotencyKeyRepository;
 import io.github.ramyagangapatnam.fhirhub.persistence.InboundMessage;
 import io.github.ramyagangapatnam.fhirhub.persistence.InboundMessageRepository;
+import io.github.ramyagangapatnam.fhirhub.persistence.InboundMessageStatus;
 import io.github.ramyagangapatnam.fhirhub.persistence.ValidationErrorRepository;
+import io.github.ramyagangapatnam.fhirhub.transform.MessageTransformationService;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +24,7 @@ import javax.sql.DataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,6 +50,7 @@ public class InspectorController {
   private final ValidationErrorRepository validationErrors;
   private final IdempotencyKeyRepository idempotencyKeys;
   private final FhirResourceRepository fhirResources;
+  private final MessageTransformationService transformation;
   private final AuditEventEmitter audit;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -55,12 +60,14 @@ public class InspectorController {
       ValidationErrorRepository validationErrors,
       IdempotencyKeyRepository idempotencyKeys,
       FhirResourceRepository fhirResources,
+      MessageTransformationService transformation,
       AuditEventEmitter audit) {
     this.jdbc = new JdbcTemplate(dataSource);
     this.inboundMessages = inboundMessages;
     this.validationErrors = validationErrors;
     this.idempotencyKeys = idempotencyKeys;
     this.fhirResources = fhirResources;
+    this.transformation = transformation;
     this.audit = audit;
   }
 
@@ -158,6 +165,58 @@ public class InspectorController {
   }
 
   /**
+   * {@code POST /inspector/messages/{messageId}/replay}: re-run validation + transformation against
+   * the persisted raw HL7 body via {@link MessageTransformationService} (synchronously, so the
+   * response reflects the final status — see ADR-0009). Always emits a distinct {@code replay}
+   * audit event for the operator action (Principle II), reusing the originating ingestion
+   * correlation id so the whole lineage shares one id (SC-009). A replay that re-fails validation
+   * updates the message to {@code FAILED} and surfaces 422 + {@code REPLAY_REVALIDATION_FAILED};
+   * replaying an already-PERSISTED message is idempotent and creates no new FHIR resources
+   * (Principle VIII).
+   */
+  @PostMapping("/messages/{messageId}/replay")
+  public ReplayResult replay(@PathVariable UUID messageId) {
+    InboundMessage message = requireMessage(messageId);
+    String previousStatus = message.getStatus().name();
+    UUID correlationId = message.getCorrelationId();
+
+    MessageTransformationService.Result result = transformation.process(messageId);
+    boolean failed = result instanceof MessageTransformationService.Result.Failed;
+
+    audit.emit(
+        "InboundMessage",
+        messageId.toString(),
+        "replay",
+        failed ? "failure" : "success",
+        correlationId);
+
+    List<ValidationErrorView> errors =
+        validationErrors.findByInboundMessageId(messageId).stream()
+            .map(
+                row ->
+                    new ValidationErrorView(
+                        row.getErrorCode(), row.getSegmentField(), row.getSummarySafe()))
+            .toList();
+
+    if (failed) {
+      MessageTransformationService.Result.Failed f =
+          (MessageTransformationService.Result.Failed) result;
+      throw new DomainException(
+          ErrorCode.REPLAY_REVALIDATION_FAILED,
+          "Replay re-ran validation and the message is still invalid.",
+          f.location());
+    }
+
+    return new ReplayResult(
+        messageId.toString(),
+        previousStatus,
+        InboundMessageStatus.PERSISTED.name(),
+        errors,
+        OffsetDateTime.now(ZoneOffset.UTC).toString(),
+        correlationId.toString());
+  }
+
+  /**
    * Resolve the derived FHIR resources for a message via its idempotency key (which carries the
    * Patient + Encounter logical ids). Returns {@code null} when no resources have been produced.
    * Emits a {@code read} audit event per resource actually returned.
@@ -251,5 +310,14 @@ public class InspectorController {
       String rawHl7,
       List<ValidationErrorView> validationErrors,
       FhirResources fhirResources,
+      String correlationId) {}
+
+  /** Result of a replay: the status transition plus any re-validation findings. */
+  public record ReplayResult(
+      String messageId,
+      String previousStatus,
+      String newStatus,
+      List<ValidationErrorView> validationErrors,
+      String replayedAtUtc,
       String correlationId) {}
 }
