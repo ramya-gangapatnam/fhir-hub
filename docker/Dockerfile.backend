@@ -9,19 +9,17 @@ FROM eclipse-temurin:21-jdk AS build
 WORKDIR /workspace
 
 # Copy the Gradle wrapper + build scripts first so dependency resolution
-# is cached when only source files change. The wrapper isn't checked in
-# yet (added when the backend module is fleshed out); the COPY tolerates
-# its absence by listing files we know exist today.
+# layers are cached when only source files change.
 COPY backend/build.gradle.kts backend/settings.gradle.kts ./
+COPY backend/gradlew ./gradlew
+COPY backend/gradle ./gradle
 COPY backend/config ./config
 COPY backend/src ./src
 
-# Use the host gradle if the wrapper isn't present. In CI the wrapper
-# WILL be present once the module is built once; for now this keeps the
-# Dockerfile honest about what's required.
-RUN if [ -x ./gradlew ]; then ./gradlew --no-daemon bootJar; \
-    else apt-get update && apt-get install -y --no-install-recommends gradle \
-         && gradle --no-daemon bootJar; fi
+# Build the boot jar using the committed Gradle wrapper (pinned to the
+# version this project builds with). chmod +x because the executable bit
+# is lost when the wrapper is committed from Windows.
+RUN chmod +x ./gradlew && ./gradlew --no-daemon bootJar
 
 # ---- runtime ----
 FROM eclipse-temurin:21-jre
