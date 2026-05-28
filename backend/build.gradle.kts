@@ -68,6 +68,11 @@ dependencies {
     testImplementation("org.mockito:mockito-core")
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("io.rest-assured:rest-assured:${property("restAssuredVersion")}")
+    // WebTestClient for the US2 Inspector contract tests. REST-assured 5.5.0 NPEs on GET under
+    // JDK 21 + Spring Boot 4 (docs/FUTURE.md), so the Inspector tests drive the server over
+    // WebTestClient, which uses a native reactor-netty client. Test scope only — the production
+    // app stays Spring MVC (servlet) because DispatcherServlet is on the main classpath.
+    testImplementation("org.springframework.boot:spring-boot-starter-webflux")
 
     testImplementation(platform("org.testcontainers:testcontainers-bom:${property("testcontainersVersion")}"))
     testImplementation("org.testcontainers:junit-jupiter")
