@@ -25,6 +25,7 @@ exception is raised on the **client side** before the request reaches the server
 the server logs show no inbound request at all.
 
 Stack-trace summary (top 9 frames):
+
 ```
 java.lang.NullPointerException
   at java.lang.Class.isAssignableFrom(Native Method)
@@ -47,6 +48,7 @@ upstream of any response-parsing logic.
 
 **Workaround in this branch:** `@Disabled` on the seven GET-using tests with this
 comment quoted so the disabling can be searched later:
+
 - `FhirPatientReadContractTest` (3 tests)
 - `FhirEncounterReadContractTest` (3 tests)
 - `AuditEmissionIntegrationTest` (1 test — also depends on US2 Inspector)
@@ -57,3 +59,22 @@ JDK 21 / Spring Boot 4 stack and does not depend on Groovy.
 
 The production controllers (`FhirReadController`, the Inspector reads in US2)
 are unaffected — only test infrastructure needs to change.
+
+## Audit log not emitting in the Docker stack
+
+After fixing FHIR_HUB_AUDIT_SINK in docker-compose.yml, /var/audit/
+exists in the backend container but no audit.log is produced after a
+successful ingest. The FHIR transformation works (Patient + Encounter
+rows created, confirmed via psql), but Principle II audit events are
+not being written in the running stack. Needs investigation: whether
+the env var is reaching the FileAuditSink selection, or the file-sink
+path resolution / append is failing silently. Surfaced during the
+session-11 end-to-end demo.
+
+## Document the curl-on-Windows CRLF gotcha in the README demo steps
+
+curl.exe --data-binary @fixture.hl7 on Windows PowerShell strips/translates
+the CR segment terminators HL7 v2 requires, producing a spurious 400
+HL7_PARSE_MISSING_SEGMENT. The working invocation reads the file, replaces
+CRLF with CR, and posts raw bytes via Invoke-WebRequest. Add the working
+demo command to the README so the round-trip is reproducible on Windows.
