@@ -1,0 +1,95 @@
+.inspector-list {
+  padding: 1.5rem;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.status-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+}
+
+.status-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.msh10-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  input {
+    padding: 0.35rem 0.5rem;
+  }
+}
+
+button[type='submit'] {
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.3);
+}
+
+.message-row {
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(127, 127, 127, 0.12);
+    outline: none;
+  }
+}
+
+.mono {
+  font-family: ui-monospace, 'SFMono-Regular', 'Consolas', monospace;
+  font-size: 0.85em;
+}
+
+.status {
+  font-weight: 600;
+}
+
+.status-FAILED {
+  color: #c0392b;
+}
+
+.status-PERSISTED {
+  color: #1e8449;
+}
+
+.status-msg {
+  margin-top: 1rem;
+
+  &.error {
+    color: #c0392b;
+  }
+}
+
+.total {
+  margin-top: 0.75rem;
+  opacity: 0.7;
+}
