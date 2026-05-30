@@ -13,7 +13,7 @@ export interface RuntimeConfig {
 }
 
 const DEFAULT_CONFIG: RuntimeConfig = {
-  apiBaseUrl: 'http://localhost:8080',
+  apiBaseUrl: '',
   authToken: 'dev-only-do-not-ship',
 };
 
