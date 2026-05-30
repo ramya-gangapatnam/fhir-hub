@@ -1,5 +1,5 @@
 {
-  "/inspector": { "target": "http://localhost:8080", "secure": false, "changeOrigin": true },
-  "/ingest":    { "target": "http://localhost:8080", "secure": false, "changeOrigin": true },
-  "/fhir":      { "target": "http://localhost:8080", "secure": false, "changeOrigin": true }
+  "/inspector": { "target": "http://127.0.0.1:8080", "secure": false, "changeOrigin": true },
+  "/ingest":    { "target": "http://127.0.0.1:8080", "secure": false, "changeOrigin": true },
+  "/fhir":      { "target": "http://127.0.0.1:8080", "secure": false, "changeOrigin": true }
 }
